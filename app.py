@@ -39,6 +39,64 @@ with st.expander("📖 Column Guide — How to read this dashboard"):
 | **Recommendation** | 🔴 Reorder vinyl now · 🔴 Reorder — 1-color run (24+ units) · 🔴 Reorder — 2-color run (36+ units) · 🟠 Watch — approaching MOQ · 🟠 Watch — low vinyl volume · 🟡 Low volume — confirm inventory before acting |
 """)
 
+with st.expander("🤖 How the Model Works"):
+    st.markdown("""
+### The Simple Version
+The model watches how fast each band sells each item.
+When it detects that sales are accelerating — faster than usual —
+it fires an alert before the band runs out, giving Just Merch
+enough time to print and ship a reorder.
+
+---
+
+### Step by Step
+
+**1. It learns from 5 years of sales history**
+Trained on 46,000+ orders across 72 bands from 2020–2025.
+It learned what normal selling looks like for each band and style,
+and what the warning signs look like before a stockout.
+
+**2. It tracks sales velocity — not just total sales**
+Total sales alone does not tell you much. What matters is the rate of change:
+- A style selling 2 units/week for months = normal, no action needed
+- That same style suddenly selling 7 units/week = something changed — tour started, album dropped — act now
+
+**3. It compares short-term vs long-term patterns**
+For every band-style combo the model compares what sold in the last 4 weeks
+vs the last 12 weeks. If the short-term rate is significantly higher,
+the Velocity Trend spikes above 1.0 — that is the signal.
+
+**4. It scores every active item weekly**
+Each of the 252 active band-style combos gets a score from 0 to 1.
+Anything above 0.50 appears on this dashboard.
+
+**5. It factors in lead time automatically**
+Built knowing Just Merch needs 3 weeks from order to delivery.
+When an alert fires, the band should still have stock when the reorder arrives —
+as long as action is taken promptly.
+
+---
+
+### What the Model Does NOT Do
+- It does not know current inventory levels — verify stock before acting on an alert
+- It does not predict size breakdowns — alerts are at the style level
+- It does not account for overnight viral moments, though the velocity
+  signal will pick these up within days
+
+---
+
+### Accuracy
+| Metric | Score |
+|---|---|
+| Model | Gradient Boosting |
+| ROC-AUC | 0.955 |
+| Average Precision | 0.741 (20x better than random) |
+| Alert Threshold | 0.50 |
+| Active items monitored | 252 |
+
+The more data Just Merch feeds in over time, the more accurate the model becomes.
+""")
+
 st.divider()
 
 st.sidebar.header("Filters")
