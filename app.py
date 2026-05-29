@@ -125,31 +125,7 @@ When it detects that sales are accelerating — faster than usual —
 it fires an alert before the band runs out, giving Just Merch
 enough time to print and ship a reorder.
 
----
-
-### Step by Step
-
-**1. It learns from 5 years of sales history**
-Trained on 46,000+ orders across 72 bands from 2020–2025.
-
-**2. It tracks sales velocity — not just total sales**
-- A style selling 2 units/week for months = normal, no action needed
-- That same style suddenly selling 7 units/week = act now
-
-**3. It compares short-term vs long-term patterns**
-If the last 4 weeks are significantly higher than the last 12 weeks,
-the Velocity Trend spikes above 1.0 — that is the signal.
-
-**4. It scores every active item weekly**
-Each of the 252 active band-style combos gets a score from 0 to 1.
-Anything above 0.50 appears on this dashboard.
-
-**5. It factors in lead time automatically**
-Built knowing Just Merch needs 3 weeks from order to delivery.
-
----
-
-### Accuracy
+**Accuracy**
 | Metric | Score |
 |---|---|
 | Model | Gradient Boosting |
@@ -224,17 +200,41 @@ Built knowing Just Merch needs 3 weeks from order to delivery.
 # ── TAB 2: UPLOAD ─────────────────────────────────────────────────────────────
 with tab2:
     st.title("📤 Upload New Sales Data")
-    st.caption("Upload a sales export CSV. Map your columns to the required fields, then submit to the master sheet.")
+    st.caption("Upload a sales export CSV, map or rename your columns, then submit to the master sheet.")
 
     uploaded_file = st.file_uploader("Choose a CSV file", type="csv")
 
     if uploaded_file:
         df_upload = pd.read_csv(uploaded_file)
-        st.subheader("Preview of uploaded file")
+
+        st.subheader("Step 1 — Rename columns manually (optional)")
+        st.caption("If your column names are unclear, rename them here before mapping.")
+
+        rename_map = {}
+        cols = list(df_upload.columns)
+        num_cols = len(cols)
+        rows = (num_cols + 2) // 3
+
+        for row in range(rows):
+            grid = st.columns(3)
+            for col_idx in range(3):
+                i = row * 3 + col_idx
+                if i < num_cols:
+                    with grid[col_idx]:
+                        new_name = st.text_input(
+                            f"Rename: **{cols[i]}**",
+                            value=cols[i],
+                            key=f"rename_{i}"
+                        )
+                        rename_map[cols[i]] = new_name
+
+        df_upload = df_upload.rename(columns=rename_map)
+
+        st.subheader("Step 2 — Preview renamed file")
         st.dataframe(df_upload.head(5), use_container_width=True)
 
-        st.subheader("Map your columns to required fields")
-        st.caption("For each required field, select the matching column from your file. Select 'Skip' if not available.")
+        st.subheader("Step 3 — Map columns to required fields")
+        st.caption("Select the matching column for each required field. Select Skip if not available.")
 
         upload_cols = ["-- Skip --"] + list(df_upload.columns)
         mapping = {}
@@ -243,17 +243,17 @@ with tab2:
         for i, req_col in enumerate(REQUIRED_COLS):
             with col_a if i % 2 == 0 else col_b:
                 mapping[req_col] = st.selectbox(
-                    f"{req_col}",
+                    req_col,
                     options=upload_cols,
                     index=upload_cols.index(req_col) if req_col in upload_cols else 0,
-                    key=req_col
+                    key=f"map_{req_col}"
                 )
 
         if st.button("Preview Mapped Data"):
             mapped = {}
             for req_col, src_col in mapping.items():
                 if src_col != "-- Skip --":
-                    mapped[req_col] = df_upload[src_col]
+                    mapped[req_col] = df_upload[src_col].values
                 else:
                     mapped[req_col] = ""
             df_mapped = pd.DataFrame(mapped)
@@ -262,7 +262,7 @@ with tab2:
 
         if "df_mapped" in st.session_state:
             st.divider()
-            st.subheader("Submit to Master Sheet")
+            st.subheader("Step 4 — Submit to Master Sheet")
             st.caption(f"This will append {len(st.session_state['df_mapped']):,} rows to the master sales Google Sheet.")
 
             if st.button("✅ Confirm & Upload", type="primary"):
@@ -272,7 +272,8 @@ with tab2:
                     ws     = sh.get_worksheet(0)
                     df_out = st.session_state["df_mapped"].fillna("").astype(str)
                     ws.append_rows(df_out.values.tolist(), value_input_option="USER_ENTERED")
-                    st.success(f"✅ {len(df_out):,} rows uploaded to the master sheet successfully.")
-                    st.info("Re-run the Colab notebook to refresh the model and update the alert dashboard.")
+                    st.success(f"✅ {len(df_out):,} rows uploaded successfully.")
+                    st.info("Re-run the Colab notebook to refresh the model and update alerts.")
+                    del st.session_state["df_mapped"]
                 except Exception as e:
                     st.error(f"Upload failed: {e}")
