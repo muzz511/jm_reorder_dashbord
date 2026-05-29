@@ -64,30 +64,17 @@ with tab1:
 ### Key Insights
 
 **Demand is event-driven, not steady**
-Sales across all bands follow a burst pattern — sharp spikes tied to tours,
-releases, and drops, followed by quiet periods. Standard inventory models
-that assume steady demand would fail here. Velocity acceleration is the right signal.
+Sales follow a burst pattern tied to tours, releases, and drops.
+Velocity acceleration is the right signal to monitor.
 
 **7 bands drive 80% of all orders**
-The catalog is highly concentrated. Katastro, Jac Vanek, and The Starting Line
-represent the majority of volume. Errors on high-volume bands are costlier
-than errors on tail bands — the model prioritizes these correctly.
+Katastro, Jac Vanek, and The Starting Line represent the majority of volume.
 
 **Friday is the dominant sales day**
-Nearly 2.5x Sunday volume. Bands coordinate merch drops with music releases
-on Fridays. This is a reliable pattern the model captures through short-term velocity features.
+Nearly 2.5x Sunday volume — bands drop merch on release day.
 
 **Short-term velocity is the strongest predictor**
-The top 3 features by importance were all recency-based:
-- Last 4 weeks of sales (28%)
-- Last 8 weeks of sales (25%)
-- Weeks since last sale (24%)
-
-**Current alerts (as of May 2026)**
-- 17 active alerts across 7 bands
-- 3 immediate reorders: Mother Soki, She's Green (vinyl x2)
-- 6 on the watch list: Macseal, The Starting Line variants, Heavenward
-- Most urgent: Mother Soki Rivet Gun 7" Vinyl (score 0.995, 7 units/week)
+Last 4 weeks (28%) · Last 8 weeks (25%) · Weeks since last sale (24%)
 
 ---
 
@@ -96,36 +83,33 @@ The top 3 features by importance were all recency-based:
 | Priority | Action |
 |---|---|
 | 🔴 High | Connect live inventory data to add "units remaining" to each alert |
-| 🔴 High | Add size-level variant data from Shopify for SKU-level predictions |
-| 🟠 Medium | Incorporate tour dates as a feature — known shows = predictable demand spikes |
+| 🔴 High | Add size-level variant data for SKU-level predictions |
+| 🟠 Medium | Incorporate tour dates as a feature |
 | 🟠 Medium | Retrain quarterly as more data accumulates |
-| 🟡 Low | Build email/Slack alerts so staff don't need to check the dashboard manually |
+| 🟡 Low | Build email/Slack alerts |
 """)
 
     with st.expander("📖 Column Guide — How to read this dashboard"):
         st.markdown("""
 | Column | What it means |
 |---|---|
-| **Band** | The artist or group. Each row is one specific product for that band. |
-| **Style** | The specific item — e.g. "Rivet Gun 7\" Vinyl" or "Bud Crewneck". One band can have multiple styles, each tracked independently. |
-| **Type** | Either `apparel` (shirts, hoodies, tanks) or `vinyl`. Matters because reorder rules differ — apparel has a minimum print run, vinyl can be reordered in any quantity. |
-| **Alert Score** | How confident the model is that this item needs attention. Scored 0–1. 🔴 0.90–1.00 = act now · 🟠 0.70–0.89 = monitor closely · 🟡 0.50–0.69 = on the radar |
-| **Avg/4wk** | Average units sold per week over the last 4 weeks. This is the current sales rate. Example: 7.0 means roughly 1 unit per day. |
-| **Projected 3-Week Demand** | Units expected to sell in the next 3 weeks based on current velocity. If inventory is below this number, the band risks running out before a reorder arrives. |
-| **Velocity Trend** | Is demand speeding up or slowing down? Above 1.0 = accelerating. Below 1.0 = slowing. 3.0 (max) = demand tripled vs historical baseline — tour or release signal. |
-| **Weeks Since Sale** | How many weeks ago the last order was placed. 0 = sold this week. Higher = item has gone quiet. |
-| **Recommendation** | 🔴 Reorder vinyl now · 🔴 Reorder — 1-color run (24+ units) · 🔴 Reorder — 2-color run (36+ units) · 🟠 Watch — approaching MOQ · 🟠 Watch — low vinyl volume · 🟡 Low volume — confirm inventory before acting |
+| **Band** | The artist or group. |
+| **Style** | The specific item being tracked. |
+| **Type** | `apparel` or `vinyl` — different reorder rules apply. |
+| **Alert Score** | Confidence score 0–1. 🔴 ≥0.90 · 🟠 ≥0.70 · 🟡 ≥0.50 |
+| **Avg/4wk** | Average units sold per week over the last 4 weeks. |
+| **Projected 3-Week Demand** | Expected units needed in the next 3 weeks. |
+| **Velocity Trend** | >1.0 = accelerating demand. 3.0 = tripled vs baseline. |
+| **Weeks Since Sale** | 0 = sold this week. Higher = going quiet. |
+| **Recommendation** | Action to take based on demand and MOQ rules. |
 """)
 
     with st.expander("🤖 How the Model Works"):
         st.markdown("""
-### The Simple Version
-The model watches how fast each band sells each item.
-When it detects that sales are accelerating — faster than usual —
-it fires an alert before the band runs out, giving Just Merch
-enough time to print and ship a reorder.
+The model watches sales velocity for each band-style combo weekly.
+When short-term rate significantly exceeds the long-term baseline,
+it fires an alert with enough lead time for Just Merch to act.
 
-**Accuracy**
 | Metric | Score |
 |---|---|
 | Model | Gradient Boosting |
@@ -200,41 +184,15 @@ enough time to print and ship a reorder.
 # ── TAB 2: UPLOAD ─────────────────────────────────────────────────────────────
 with tab2:
     st.title("📤 Upload New Sales Data")
-    st.caption("Upload a sales export CSV, map or rename your columns, then submit to the master sheet.")
+    st.caption("Map your columns to the required fields. Add any extra columns (Size, Inventory, etc.) below.")
 
     uploaded_file = st.file_uploader("Choose a CSV file", type="csv")
 
     if uploaded_file:
         df_upload = pd.read_csv(uploaded_file)
 
-        st.subheader("Step 1 — Rename columns manually (optional)")
-        st.caption("If your column names are unclear, rename them here before mapping.")
-
-        rename_map = {}
-        cols = list(df_upload.columns)
-        num_cols = len(cols)
-        rows = (num_cols + 2) // 3
-
-        for row in range(rows):
-            grid = st.columns(3)
-            for col_idx in range(3):
-                i = row * 3 + col_idx
-                if i < num_cols:
-                    with grid[col_idx]:
-                        new_name = st.text_input(
-                            f"Rename: **{cols[i]}**",
-                            value=cols[i],
-                            key=f"rename_{i}"
-                        )
-                        rename_map[cols[i]] = new_name
-
-        df_upload = df_upload.rename(columns=rename_map)
-
-        st.subheader("Step 2 — Preview renamed file")
-        st.dataframe(df_upload.head(5), use_container_width=True)
-
-        st.subheader("Step 3 — Map columns to required fields")
-        st.caption("Select the matching column for each required field. Select Skip if not available.")
+        st.subheader("Step 1 — Map required columns")
+        st.caption("Match each required field to a column in your file.")
 
         upload_cols = ["-- Skip --"] + list(df_upload.columns)
         mapping = {}
@@ -249,14 +207,31 @@ with tab2:
                     key=f"map_{req_col}"
                 )
 
+        st.divider()
+        st.subheader("Step 2 — Add extra columns (optional)")
+        st.caption("Define additional columns to include — e.g. Size, Inventory Count. These will be appended to the master sheet alongside the required fields.")
+
+        num_extra = st.number_input("How many extra columns do you want to add?", min_value=0, max_value=10, value=0, step=1)
+
+        extra_mapping = {}
+        if num_extra > 0:
+            col_a2, col_b2 = st.columns(2)
+            for i in range(int(num_extra)):
+                with col_a2 if i % 2 == 0 else col_b2:
+                    col_name = st.text_input(f"Column name #{i+1}", value="", key=f"extra_name_{i}")
+                    col_src  = st.selectbox(f"Maps to column in your file", options=upload_cols, key=f"extra_src_{i}")
+                    if col_name and col_src != "-- Skip --":
+                        extra_mapping[col_name] = col_src
+
+        st.divider()
         if st.button("Preview Mapped Data"):
             mapped = {}
             for req_col, src_col in mapping.items():
-                if src_col != "-- Skip --":
-                    mapped[req_col] = df_upload[src_col].values
-                else:
-                    mapped[req_col] = ""
+                mapped[req_col] = df_upload[src_col].values if src_col != "-- Skip --" else ""
+            for new_name, src_col in extra_mapping.items():
+                mapped[new_name] = df_upload[src_col].values
             df_mapped = pd.DataFrame(mapped)
+            st.subheader("Step 3 — Preview")
             st.dataframe(df_mapped.head(10), use_container_width=True)
             st.session_state["df_mapped"] = df_mapped
 
