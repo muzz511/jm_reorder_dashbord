@@ -24,6 +24,23 @@ col4.metric("Watch List", len(alerts[alerts["Recommendation"].str.startswith("Wa
 
 st.divider()
 
+with st.expander("📖 Column Guide — How to read this dashboard"):
+    st.markdown("""
+| Column | What it means |
+|---|---|
+| **Band** | The artist or group. Each row is one specific product for that band. |
+| **Style** | The specific item — e.g. "Rivet Gun 7\" Vinyl" or "Bud Crewneck". One band can have multiple styles, each tracked independently. |
+| **Type** | Either `apparel` (shirts, hoodies, tanks) or `vinyl`. Matters because reorder rules differ — apparel has a minimum print run, vinyl can be reordered in any quantity. |
+| **Alert Score** | How confident the model is that this item needs attention. Scored 0–1. 🔴 0.90–1.00 = act now · 🟠 0.70–0.89 = monitor closely · 🟡 0.50–0.69 = on the radar |
+| **Avg/4wk** | Average units sold per week over the last 4 weeks. This is the current sales rate. Example: 7.0 means roughly 1 unit per day. |
+| **Projected 3-Week Demand** | Units expected to sell in the next 3 weeks based on current velocity. If inventory is below this number, the band risks running out before a reorder arrives. |
+| **Velocity Trend** | Is demand speeding up or slowing down? Above 1.0 = accelerating. Below 1.0 = slowing. 3.0 (max) = demand tripled vs historical baseline — tour or release signal. |
+| **Weeks Since Sale** | How many weeks ago the last order was placed. 0 = sold this week. Higher = item has gone quiet. |
+| **Recommendation** | 🔴 Reorder vinyl now · 🔴 Reorder — 1-color run (24+ units) · 🔴 Reorder — 2-color run (36+ units) · 🟠 Watch — approaching MOQ · 🟠 Watch — low vinyl volume · 🟡 Low volume — confirm inventory before acting |
+""")
+
+st.divider()
+
 st.sidebar.header("Filters")
 type_filter   = st.sidebar.multiselect("Product Type", options=alerts["Type"].unique(), default=alerts["Type"].unique())
 band_filter   = st.sidebar.multiselect("Band", options=sorted(alerts["Band"].unique()), default=sorted(alerts["Band"].unique()))
