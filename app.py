@@ -24,6 +24,68 @@ col4.metric("Watch List", len(alerts[alerts["Recommendation"].str.startswith("Wa
 
 st.divider()
 
+with st.expander("📊 Project Summary & Insights"):
+    st.markdown("""
+### What We Built
+
+| Component | Detail |
+|---|---|
+| **Data** | 46,278 clean orders · 72 bands · 2020–2026 |
+| **Prediction unit** | Band + Style combination (252 active) |
+| **Model** | Gradient Boosting Classifier |
+| **Performance** | ROC-AUC 0.955 · Average Precision 0.741 |
+| **Alert threshold** | 0.50 confidence score |
+| **Lead time** | 3 weeks (order placed → band receives) |
+| **MOQ logic** | Apparel: 24 units (1-color) / 36 units (2-color) · Vinyl: no minimum |
+| **Output** | Live dashboard + downloadable CSV |
+| **Refresh** | Weekly — re-run notebook with updated sales data |
+
+---
+
+### Key Insights
+
+**Demand is event-driven, not steady**
+Sales across all bands follow a burst pattern — sharp spikes tied to tours,
+releases, and drops, followed by quiet periods. Standard inventory models
+that assume steady demand would fail here. Velocity acceleration is the right signal.
+
+**7 bands drive 80% of all orders**
+The catalog is highly concentrated. Katastro, Jac Vanek, and The Starting Line
+represent the majority of volume. Errors on high-volume bands are costlier
+than errors on tail bands — the model prioritizes these correctly.
+
+**Friday is the dominant sales day**
+Nearly 2.5x Sunday volume. Bands coordinate merch drops with music releases
+on Fridays. This is a reliable pattern the model captures through short-term velocity features.
+
+**Short-term velocity is the strongest predictor**
+The top 3 features by importance were all recency-based:
+- Last 4 weeks of sales (28%)
+- Last 8 weeks of sales (25%)
+- Weeks since last sale (24%)
+
+Long-term history matters far less than what happened recently.
+This makes the model responsive to tour announcements and release cycles.
+
+**Current alerts (as of May 2026)**
+- 17 active alerts across 7 bands
+- 3 immediate reorders: Mother Soki, She's Green (vinyl ×2)
+- 6 on the watch list: Macseal, The Starting Line variants, Heavenward
+- Most urgent: Mother Soki Rivet Gun 7" Vinyl (score 0.995, 7 units/week)
+
+---
+
+### Limitations & Next Steps
+
+| Priority | Action |
+|---|---|
+| 🔴 High | Connect live inventory data to add "units remaining" to each alert |
+| 🔴 High | Add size-level variant data from Shopify for SKU-level predictions |
+| 🟠 Medium | Incorporate tour dates as a feature — known shows = predictable demand spikes |
+| 🟠 Medium | Retrain quarterly as more data accumulates |
+| 🟡 Low | Build email/Slack alerts so staff don't need to check the dashboard manually |
+""")
+
 with st.expander("📖 Column Guide — How to read this dashboard"):
     st.markdown("""
 | Column | What it means |
@@ -59,7 +121,7 @@ and what the warning signs look like before a stockout.
 **2. It tracks sales velocity — not just total sales**
 Total sales alone does not tell you much. What matters is the rate of change:
 - A style selling 2 units/week for months = normal, no action needed
-- That same style suddenly selling 7 units/week = something changed — tour started, album dropped — act now
+- That same style suddenly selling 7 units/week = something changed — act now
 
 **3. It compares short-term vs long-term patterns**
 For every band-style combo the model compares what sold in the last 4 weeks
@@ -80,8 +142,7 @@ as long as action is taken promptly.
 ### What the Model Does NOT Do
 - It does not know current inventory levels — verify stock before acting on an alert
 - It does not predict size breakdowns — alerts are at the style level
-- It does not account for overnight viral moments, though the velocity
-  signal will pick these up within days
+- It does not account for overnight viral moments, though velocity picks these up within days
 
 ---
 
