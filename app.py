@@ -35,24 +35,10 @@ filtered = alerts[
     (alerts["Recommendation"].isin(action_filter))
 ].reset_index(drop=True)
 
-def color_recommendation(val):
-    if val.startswith("Reorder"):  return "background-color: #ff4d4d; color: white"
-    elif val.startswith("Watch"):  return "background-color: #ff9800; color: white"
-    else:                          return "background-color: #ffd54f"
-
-def color_score(val):
-    if val >= 0.9:   return "background-color: #ff4d4d; color: white"
-    elif val >= 0.7: return "background-color: #ff9800; color: white"
-    elif val >= 0.5: return "background-color: #ffd54f"
-    return ""
-
 st.subheader(f"Alert List ({len(filtered)})")
 st.dataframe(
     filtered[["Band", "Style", "Type", "Alert Score", "Avg/4wk",
-              "Projected_3wk_Demand", "Velocity Trend", "Weeks Since Sale", "Recommendation"]]
-    .style
-    .applymap(color_score, subset=["Alert Score"])
-    .applymap(color_recommendation, subset=["Recommendation"]),
+              "Projected_3wk_Demand", "Velocity Trend", "Weeks Since Sale", "Recommendation"]],
     use_container_width=True,
     height=450
 )
