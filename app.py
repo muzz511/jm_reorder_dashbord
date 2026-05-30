@@ -103,6 +103,7 @@ Last 4 weeks (28%) · Last 8 weeks (25%) · Weeks since last sale (24%)
 | **Velocity Trend** | >1.0 = accelerating demand. 3.0 = tripled vs baseline. |
 | **Weeks Since Sale** | 0 = sold this week. Higher = going quiet. |
 | **Total Inventory** | Current units on hand across all sizes. Negative = backordered. |
+| **inv_S / inv_M / inv_L etc.** | Units on hand for each individual size. |
 | **Days Until Stockout** | At current velocity, how many days before stock hits zero. |
 | **Stockout Status** | 🔴 Out of stock or within lead time · 🟠 Within 6 weeks · 🟡 Sufficient |
 | **Recommendation** | Action based on demand and MOQ rules. |
@@ -151,6 +152,9 @@ it fires an alert with enough lead time for Just Merch to act.
                     "Projected_3wk_Demand", "Velocity Trend", "Weeks Since Sale", "Recommendation"]
     if "Total_Inventory" in alerts.columns:
         display_cols += ["Total_Inventory", "Days_Until_Stockout", "Stockout_Status"]
+    size_cols = [c for c in alerts.columns if c.startswith("inv_")]
+    if size_cols:
+        display_cols += size_cols
 
     st.subheader(f"Alert List ({len(filtered)})")
     st.dataframe(filtered[display_cols], use_container_width=True, height=500)
